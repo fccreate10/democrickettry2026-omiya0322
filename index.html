@@ -54,6 +54,9 @@
         .team-link { color: #1565c0; font-weight: bold; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; display: inline-block; padding: 2px 0; }
         .tourn-header { background: #e0f2f1; padding: 8px; font-weight: bold; border-bottom: 1px solid #ddd; font-size: 0.9rem; margin-top: 10px; color: var(--primary); }
         
+        .map-container { width: 100%; height: 350px; border-radius: 8px; overflow: hidden; border: 1px solid #ddd; margin: 10px 0; }
+        .nav-btn { display: flex; align-items: center; justify-content: center; background: #4285F4; color: white; text-decoration: none; padding: 12px; border-radius: 6px; font-weight: bold; font-size: 1rem; margin-top: 10px; }
+
         #loading-mini { position: fixed; top: 15px; right: 15px; background: rgba(255, 255, 255, 0.95); color: var(--primary); padding: 8px 16px; border-radius: 30px; font-size: 0.8rem; font-weight: bold; display: flex; align-items: center; gap: 8px; z-index: 50000; box-shadow: 0 4px 15px rgba(0,0,0,0.15); transition: opacity 0.4s ease; }
         .spinner-mini { width: 14px; height: 14px; border: 2px solid #ddd; border-top: 2px solid var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
@@ -136,6 +139,33 @@
     <h2 id="final-rank-title" style="display:none;">5. 最終順位</h2>
     <div id="final-rank-card" class="card" style="display:none;"></div>
 
+    <h2>6. 会場案内（大宮けんぽグラウンド）</h2>
+    <div class="card" id="map-normal">
+        <span style="font-size:1.1rem; font-weight:bold; color:var(--primary);">大宮けんぽグラウンド</span><br>
+        <span style="font-size:0.85rem; color:#666;">埼玉県さいたま市西区二ツ宮113-1</span>
+        
+        <div class="map-container">
+            <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d12906.963496030588!2d139.5662758!3d35.8913985!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6018c12a873d6e3f%3A0xb3a268a719c8f0e5!2z5aSn5a6u44GR44KT44G944Kw44Op44Km44Oz44OJ!5e0!3m2!1sja!2sjp!4v1700000000000!5m2!1sja!2sjp" width="100%" height="100%" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+        </div>
+        <a href="https://maps.app.goo.gl/dummy" target="_blank" class="nav-btn">📍 Googleマップで起動</a>
+    </div>
+
+    <h2>7. 大会要項</h2>
+    <div class="card text-content">
+        <p style="margin-top:0;"><strong>開催日時：</strong> 2026年6月7日(日)<br>
+        <span style="font-size:0.8rem; color:#666;">※少雨決行。悪天候時の開催可否はグループLINEにて連絡いたします。</span></p>
+
+        <h3>大会形式・ルール</h3>
+        <ul>
+            <li>安全なプラスチック製バットと専用ボールを使用した簡易ルール（ソーシャルクリケット形式）で行います。</li>
+            <li>全12チームをA〜Dの4グループ（各3チーム）に分けて予選リーグを行います。</li>
+            <li>予選リーグ終了後、各グループの同順位が集結し、「1位トーナメント」「2位トーナメント」「3位トーナメント」にて優勝および最終順位を決定します。</li>
+            <li>試合形式：1イニング制（オーバー数は当日の進行により調整）。</li>
+            <li>順位決定：①勝ち点(勝3/分1/負0) ②ネットランレート(得失点差相当) ③直接対決の結果。</li>
+            <li class="important">小学生以下のお子様も参加しています。安全第一で、全員が楽しめるフェアプレーをお願いします。</li>
+        </ul>
+    </div>
+
     <footer>運営：CrickeTRY 2026 実行委員会</footer>
 </div>
 
@@ -146,7 +176,6 @@ const API_URL = "";
 
 let serverPass = "1234";
 
-// 画像データから抽出した12チーム（4グループ×3チーム）構成
 let teamData = {
     A: [
         { n: "TEAM昇吾", m: ["★木村 昇吾", "三村 聡", "倉島 隆介", "佐藤 竜彦", "藤野 隼大", "松山 勝", "門之園 真一", "黒木 徹", "真那子 和志"] },
@@ -172,12 +201,11 @@ let teamData = {
 
 const groups = ['A', 'B', 'C', 'D'];
 
-let matches = []; // 予選リーグの試合
-let tScores = {}; // トーナメントの試合 (sf_1_1, fn_1_1 など)
+let matches = []; 
+let tScores = {}; 
 let finalRanks = { A:[], B:[], C:[], D:[] };
 let currentAction = "", currentIndex = null;
 
-// 予選カード作成（各グループ3試合、計12試合）
 function generateLeagueSchedule() {
     groups.forEach(g => {
         matches.push({ id: `q_${g}_1`, g: g, h: 0, a: 1, sh: "", sa: "" });
@@ -214,7 +242,6 @@ function init() {
     });
     document.getElementById('league-containers').innerHTML = html;
     
-    // 自チーム同士の対戦セルをグレーアウト
     groups.forEach(g => {
         for(let i=0; i<3; i++) {
             let el = document.getElementById(`res-${g}-${i}-${i}`);
@@ -225,14 +252,12 @@ function init() {
     fetchData(); 
 }
 
-// メンバー表示モーダルを開く
 function showMembers(g, i) {
     const team = teamData[g][i];
     document.getElementById('member-modal-title').innerText = team.n;
     
     let membersHtml = "";
     team.m.forEach(member => {
-        // ★リーダーを太字にするなどの装飾
         if(member.includes("★")) {
             membersHtml += `<li style="font-weight:bold; color:var(--primary);">${member.replace("★", "")} <span style="font-size:0.7rem; background:var(--accent); color:#333; padding:2px 4px; border-radius:3px;">キャプテン</span></li>`;
         } else {
@@ -273,7 +298,6 @@ async function fetchData() {
         calc();
         updateSchedule();
 
-        // トーナメント復元
         if(tScores["sf_1_1"]) { generateSemifinals(true); }
         if(tScores["fn_1_1"]) { generateFinals(true); }
         
@@ -362,7 +386,6 @@ async function submitModal() {
         if (currentAction === 'generate_fn') { generateFinals(); closeModal(); return; }
         if (currentAction === 'ranking') { showRanking(); closeModal(); return; }
         
-        // スコア入力へ進む
         document.getElementById('auth-section').style.display = "none"; 
         document.getElementById('score-section').style.display = "block";
         
@@ -408,7 +431,6 @@ async function submitModal() {
                 tScores[currentIndex].sh = parseInt(h);
                 tScores[currentIndex].sa = parseInt(a);
                 
-                // ボタンのテキスト更新
                 const btnEl = document.getElementById('btn-' + currentIndex);
                 if(btnEl) btnEl.innerHTML = `<span class="win-s">${h} - ${a}</span>`;
             }
@@ -422,7 +444,6 @@ async function submitModal() {
     }
 }
 
-// 予選の順位計算
 function calc() {
     const res = {}; 
     groups.forEach(g => { 
@@ -475,7 +496,6 @@ function calc() {
     });
 }
 
-// 準決勝の生成
 function generateSemifinals(isRestore = false) {
     let html = "";
     document.getElementById('btn-gen-final').style.display = 'block';
@@ -493,12 +513,10 @@ function generateSemifinals(isRestore = false) {
         let tC = finalRanks['C'][lvl.rank] || `C組${tier}位`;
         let tD = finalRanks['D'][lvl.rank] || `D組${tier}位`;
 
-        // 準決勝1: A vs B
         let id1 = `sf_${tier}_1`;
         if(!tScores[id1]) tScores[id1] = { teamH: tA, teamA: tB, sh: "", sa: "" };
         let btnText1 = tScores[id1].sh !== "" ? `<span class="win-s">${tScores[id1].sh} - ${tScores[id1].sa}</span>` : "入力";
 
-        // 準決勝2: C vs D
         let id2 = `sf_${tier}_2`;
         if(!tScores[id2]) tScores[id2] = { teamH: tC, teamA: tD, sh: "", sa: "" };
         let btnText2 = tScores[id2].sh !== "" ? `<span class="win-s">${tScores[id2].sh} - ${tScores[id2].sa}</span>` : "入力";
@@ -531,7 +549,6 @@ function generateSemifinals(isRestore = false) {
     if(!isRestore) window.scrollTo({ top: document.getElementById('sf-area').offsetTop - 50, behavior: 'smooth' });
 }
 
-// 決勝・順位決定戦の生成
 function generateFinals(isRestore = false) {
     let html = "";
     document.getElementById('btn-show-rank').style.display = 'block';
@@ -552,13 +569,11 @@ function generateFinals(isRestore = false) {
         let res1 = getResult(`sf_${lvl.tier}_1`);
         let res2 = getResult(`sf_${lvl.tier}_2`);
 
-        // 決勝 (勝者同士)
         let idF = `fn_${lvl.tier}_1`;
         if(!tScores[idF]) tScores[idF] = { teamH: res1.w, teamA: res2.w, sh: "", sa: "" };
         else { tScores[idF].teamH = res1.w; tScores[idF].teamA = res2.w; }
         let btnTextF = tScores[idF].sh !== "" ? `<span class="win-s">${tScores[idF].sh} - ${tScores[idF].sa}</span>` : "入力";
 
-        // 3位決定戦 (敗者同士)
         let id3 = `fn_${lvl.tier}_2`;
         if(!tScores[id3]) tScores[id3] = { teamH: res1.l, teamA: res2.l, sh: "", sa: "" };
         else { tScores[id3].teamH = res1.l; tScores[id3].teamA = res2.l; }
@@ -586,7 +601,6 @@ function generateFinals(isRestore = false) {
     if(!isRestore) window.scrollTo({ top: document.getElementById('fn-area').offsetTop - 50, behavior: 'smooth' });
 }
 
-// 最終順位表示
 function showRanking() {
     let html = "";
     
@@ -597,7 +611,6 @@ function showRanking() {
         return s.sh > s.sa ? { w: s.teamH, l: s.teamA } : { w: s.teamA, l: s.teamH };
     };
 
-    // 1位〜12位まで算出
     const finalOrder = [
         { rank: 1, id: "fn_1_1", type: "w" }, { rank: 2, id: "fn_1_1", type: "l" },
         { rank: 3, id: "fn_1_2", type: "w" }, { rank: 4, id: "fn_1_2", type: "l" },
