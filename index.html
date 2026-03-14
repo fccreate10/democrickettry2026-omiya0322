@@ -1,0 +1,128 @@
+// ============================================
+// ★ ここに先ほどコピーしたウェブアプリのURLを貼り付けます
+const API_URL = "https://script.google.com/macros/s/AKfycbwF4gQPoqaOgCHJITXtPmrvmFzieEVYwjvBFw5vNSXl9ne3vuO6qDSGz7SAHbabrr0/exec"; 
+// ============================================
+
+let serverPass = ""; // GASから取得するパスワード
+
+// 〜〜〜 (teamData 等の変数定義は前回のまま) 〜〜〜
+
+// 初期化時にGASからデータを取得する関数を追加
+async function fetchData() {
+    try {
+        const res = await fetch(API_URL);
+        const data = await res.json();
+        
+        serverPass = data.pass; // パスワードをサーバーからセット
+        
+        // 取得したスコアを反映
+        if (data.scores) {
+            Object.keys(data.scores).forEach(key => {
+                let scores = data.scores[key];
+                if (key.startsWith("final_")) {
+                    if (!tScores[key]) tScores[key] = { sh: "", sa: "" };
+                    tScores[key].sh = parseInt(scores.h);
+                    tScores[key].sa = parseInt(scores.a);
+                } else {
+                    let idx = parseInt(key);
+                    if (matches[idx]) {
+                        matches[idx].sh = parseInt(scores.h);
+                        matches[idx].sa = parseInt(scores.a);
+                    }
+                }
+            });
+        }
+        
+        calc();
+        updateSchedule();
+        
+        // 全試合終わっていたら順位決定戦などのボタンを表示する判定等があればここに書く
+        
+    } catch (e) {
+        console.error("データ取得エラー:", e);
+        // エラー時はローカルの初期状態で表示
+        calc();
+        updateSchedule();
+    }
+}
+
+// 起動時にfetchDataを呼び出すようにinit()の末尾を変更
+function init() {
+    generateLeagueSchedule();
+    // ... 前回のHTML生成ロジック ...
+    document.getElementById('league-containers').innerHTML = html;
+    
+    // fetchData内で calc() と updateSchedule() を呼ぶので、ここは fetchData() に変更
+    fetchData(); 
+}
+
+// GASへ送信する非同期関数に変更
+async function submitModal() {
+    if (document.getElementById('auth-section').style.display !== "none") {
+        // パスワードチェックをサーバーから取得したものと比較
+        if (document.getElementById('pass-field').value !== String(serverPass)) { 
+            alert("パスワードが違います"); 
+            return; 
+        }
+        
+        if (currentAction === 'reflect') { generateFinals(); closeModal(); return; }
+        if (currentAction === 'ranking') { showRanking(); closeModal(); return; }
+        
+        document.getElementById('auth-section').style.display = "none"; 
+        document.getElementById('score-section').style.display = "block";
+        
+        if (currentAction === "score") {
+            const m = matches[currentIndex];
+            document.getElementById('team-h-label').innerText = teamData[m.g][m.h].n;
+            document.getElementById('team-a-label').innerText = teamData[m.g][m.a].n;
+            document.getElementById('score-h-field').value = m.sh;
+            document.getElementById('score-a-field').value = m.sa;
+        } else if (currentAction === "t-score") {
+            const tMatch = tScores[currentIndex];
+            document.getElementById('team-h-label').innerText = tMatch.teamH;
+            document.getElementById('team-a-label').innerText = tMatch.teamA;
+            document.getElementById('score-h-field').value = tMatch.sh;
+            document.getElementById('score-a-field').value = tMatch.sa;
+        }
+    } else {
+        const h = document.getElementById('score-h-field').value;
+        const a = document.getElementById('score-a-field').value;
+        if (h === "" || a === "") { alert("スコアを入力してください"); return; }
+        
+        // 送信ボタンをローディング状態にする
+        const btn = document.getElementById('modal-submit-btn');
+        btn.innerText = "送信中...";
+        btn.disabled = true;
+
+        try {
+            // スプレッドシートに送信
+            const payload = { id: currentIndex, h: h, a: a };
+            await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain' }, // CORS回避のため text/plain
+                body: JSON.stringify(payload)
+            });
+
+            // 成功したら画面を更新
+            if (currentAction === "score") {
+                matches[currentIndex].sh = parseInt(h);
+                matches[currentIndex].sa = parseInt(a);
+                calc();
+                updateSchedule();
+            } else if (currentAction === "t-score") {
+                tScores[currentIndex].sh = parseInt(h);
+                tScores[currentIndex].sa = parseInt(a);
+                const btnEl = document.getElementById('btn-' + currentIndex);
+                if(btnEl) btnEl.innerText = `${h} - ${a}`;
+            }
+            alert("スコアを保存しました！");
+            closeModal();
+            
+        } catch (e) {
+            alert("送信に失敗しました: " + e);
+        } finally {
+            btn.innerText = "確定";
+            btn.disabled = false;
+        }
+    }
+}
