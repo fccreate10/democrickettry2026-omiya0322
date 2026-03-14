@@ -1,21 +1,253 @@
-// ============================================
-// ★ ここに先ほどコピーしたウェブアプリのURLを貼り付けます
-const API_URL = "https://script.google.com/macros/s/AKfycbwF4gQPoqaOgCHJITXtPmrvmFzieEVYwjvBFw5vNSXl9ne3vuO6qDSGz7SAHbabrr0/exec"; 
-// ============================================
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CrickeTRY 2026 大会ポータル</title>
+    <style>
+        html, body { margin: 0; padding: 0; width: 100%; overflow-x: hidden; overflow-y: auto; font-family: "Helvetica Neue", Arial, sans-serif; background: #f4f7f6; color: #333; padding-bottom: 50px; }
+        * { box-sizing: border-box; } 
+        :root { --primary: #004d40; --accent: #ffb300; --bg: #f4f7f6; --win: #c62828; --draw: #2e7d32; --lose: #1565c0; --danger: #d32f2f; --success: #2e7d32; }
+        html { font-size: clamp(12px, 3.2vw, 15px); }
+        .container { width: 100%; max-width: 900px; margin: 0 auto; padding: 5px; position: relative; }
+        #tournament-title { color: var(--primary); padding: 20px 0; margin: 0; font-weight: bold; font-size: clamp(1.5rem, 5vw, 2.2rem); line-height: 1.2; width: 100%; word-wrap: break-word; text-align: center; }
+        h2 { background: var(--primary); color: white; padding: 10px; margin: 20px 0 10px; border-radius: 3px; font-size: 1.1rem; border-left: 6px solid var(--accent); font-weight: bold; }
+        h3 { color: var(--primary); border-bottom: 2px solid var(--primary); padding-bottom: 4px; margin: 15px 0 10px; font-size: 1rem; display: flex; align-items: center; }
+        h3::before { content: "●"; margin-right: 8px; font-size: 0.8rem; }
+        .card { background: white; padding: 12px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 15px; overflow-x: auto; width: 100%; }
+        table { width: 100%; border-collapse: collapse; table-layout: fixed; background: #fff; }
+        .table-detail table { min-width: 800px; }
+        .table-simple table { min-width: 100%; }
+        .table-simple .star-col, .table-simple .star-cell, .table-simple .score-col { display: none; }
+        th, td { border: 1px solid #ccc; padding: 6px 2px; text-align: center; white-space: nowrap; overflow: hidden; }
+        th { background: #e8eaed; font-size: 0.6rem; font-weight: bold; }
+        .rank-col { width: 30px; font-weight: bold; background: #f8f9fa; }
+        .team-name-col { text-align: left; font-weight: bold; font-size: 0.75rem; padding-left: 4px; }
+        .stat-col { width: 28px; font-size: 0.7rem; }
+        .star-cell { width: 50px; font-weight: bold; font-size: 0.7rem; }
+        .score-col { width: 28px; font-size: 0.65rem; background: #fdfdfe; }
+        .gd-cell { width: 32px; background: #e0f2f1; color: #004d40; font-weight: bold; font-size: 0.7rem; }
+        .pts-cell { width: 32px; background: #fff8e1; font-weight: bold; font-size: 0.75rem; }
+        .view-switch { display: flex; justify-content: center; margin-bottom: 10px; background: #ddd; padding: 4px; border-radius: 20px; width: fit-content; margin-left: auto; margin-right: auto; }
+        .view-btn { padding: 6px 16px; border-radius: 16px; border: none; font-size: 0.85rem; font-weight: bold; cursor: pointer; color: #555; background: transparent; transition: 0.3s; }
+        .view-btn.active { background: white; color: var(--primary); box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+        .match-row { display: flex; align-items: center; border-bottom: 1px solid #eee; padding: 10px 5px; }
+        .match-info { flex: 1; min-width: 0; }
+        .match-meta { font-size: 0.75rem; color: #555; font-weight: bold; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .match-vs { font-size: 0.95rem; font-weight: bold; color: #000; display: flex; align-items: center; flex-wrap: nowrap; gap: 4px; }
+        .score-wrapper { display: flex; flex-direction: column; gap: 5px; margin-left: 10px; flex-shrink: 0; }
+        .score-btn { width: 85px; height: 40px; background: #fff; border: 1.5px solid #aaa; border-radius: 4px; font-weight: bold; font-size: 1rem; cursor: pointer; margin-left: 0; }
+        .match-label { font-size: 0.7rem; color: #666; margin-right: 4px; background: #eee; padding: 1px 4px; border-radius: 3px; }
+        #input-modal { display: none; position: absolute; width: 90%; max-width: 350px; background: white; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); z-index: 20000; padding: 20px; text-align: center; left: 50%; transform: translateX(-50%); }
+        #modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 19999; }
+        .btn-main { display: block; width: 100%; padding: 15px; background: var(--accent); color: #333; border: none; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-bottom: 10px; }
+        .final-rank-row { display: flex; align-items: center; padding: 10px; border-bottom: 1px solid #eee; font-size: 1rem; }
+        .rank-num { width: 55px; font-weight: bold; color: var(--primary); text-align: center; }
+        .rank-name { font-weight: bold; flex: 1; }
+        .win-s { color: var(--win); } .draw-s { color: var(--draw); } .lose-s { color: var(--lose); }
+        .text-content { font-size: 0.9rem; line-height: 1.6; }
+        ul { padding-left: 20px; margin: 5px 0; } li { margin-bottom: 6px; }
+        .important { color: var(--danger); font-weight: bold; }
+        .map-container { width: 100%; height: 350px; border-radius: 8px; overflow: hidden; border: 1px solid #ddd; margin: 10px 0; }
+        .nav-btn { display: flex; align-items: center; justify-content: center; background: #4285F4; color: white; text-decoration: none; padding: 12px; border-radius: 6px; font-weight: bold; font-size: 1rem; margin-top: 10px; }
+        .tag-hagane { background: #607d8b; color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.7rem; font-weight: bold; }
+        .tag-homura { background: #e64a19; color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.7rem; font-weight: bold; }
+        
+        #loading-mini { position: fixed; top: 15px; right: 15px; background: rgba(255, 255, 255, 0.95); color: var(--primary); padding: 8px 16px; border-radius: 30px; font-size: 0.8rem; font-weight: bold; display: flex; align-items: center; gap: 8px; z-index: 50000; box-shadow: 0 4px 15px rgba(0,0,0,0.15); transition: opacity 0.4s ease; }
+        .spinner-mini { width: 14px; height: 14px; border: 2px solid #ddd; border-top: 2px solid var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
 
-let serverPass = ""; // GASから取得するパスワード
+<div id="loading-mini" style="display:none;">
+    <div class="spinner-mini"></div>
+    <span>通信中...</span>
+</div>
 
-// 〜〜〜 (teamData 等の変数定義は前回のまま) 〜〜〜
+<div id="modal-overlay" onclick="closeModal()"></div>
 
-// 初期化時にGASからデータを取得する関数を追加
+<div class="container">
+    <h1 id="tournament-title">🏏 CrickeTRY 2026<br><span style="font-size: 0.6em; color: #666;">in 大宮</span></h1>
+
+    <div style="text-align: center; margin-bottom: 15px;">
+        <img src="https://drive.google.com/thumbnail?id=1AIxCalw5ongCI-LW2dazviskYZlPnzlH&sz=w1000" alt="チーム編成表" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+    </div>
+
+    <div class="card" style="font-size:0.85rem; border-top: 4px solid var(--primary);">
+        <h3 style="margin-top:0;">大会の目的</h3>
+        <p style="line-height:1.6; margin:0;">本大会は「初心者大歓迎！クリケットを楽しもう」をテーマに、様々な世代・経験値の方が入り混じって交流し、クリケットの楽しさを体験する場として開催いたします。<br>
+        経験豊かなリーダーを中心に、初めてバットを握る方も一緒に楽しみながら、チームワークとフェアプレーの精神を育むことを目指します。</p>
+    </div>
+
+    <h2>1. 予選リーグ結果</h2>
+    <div class="view-switch">
+        <button class="view-btn active" onclick="switchView('simple')">簡易</button>
+        <button class="view-btn" onclick="switchView('detail')">詳細</button>
+    </div>
+    <div id="league-containers"></div>
+
+    <h2>2. 予選日程・結果入力</h2>
+    <div class="card" id="schedule-H"></div>
+    <div class="card" id="schedule-F"></div>
+    <button class="btn-main" onclick="openAuthModal('reflect', this)">予選終了 ➔ 順位決定戦を生成</button>
+
+    <h2>3. 順位決定戦（同順位対決）</h2>
+    <div id="tourn-area" class="card" style="padding:0;">
+        <div id="schedule-tourn" style="text-align:center; padding:30px;">予選確定後に自動生成されます</div>
+    </div>
+    <button id="btn-show-rank" class="btn-main" style="display:none; background:#333; color: white;" onclick="openAuthModal('ranking', this)">全試合終了 ➔ 最終順位を表示</button>
+
+    <h2 id="final-rank-title" style="display:none;">4. 最終順位</h2>
+    <div id="final-rank-card" class="card" style="display:none;"></div>
+
+    <h2>5. 会場案内（大宮けんぽグラウンド）</h2>
+    <div class="card" id="map-normal">
+        <span style="font-size:1.1rem; font-weight:bold; color:var(--primary);">大宮けんぽグラウンド</span><br>
+        <span style="font-size:0.85rem; color:#666;">埼玉県さいたま市西区二ツ宮113-1</span>
+        
+        <div class="map-container">
+            <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d12906.963496030588!2d139.5662758!3d35.8913985!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6018c12a873d6e3f%3A0xb3a268a719c8f0e5!2z5aSn5a6u44GR44KT44G944Kw44Op44Km44Oz44OJ!5e0!3m2!1sja!2sjp!4v1700000000000!5m2!1sja!2sjp" width="100%" height="100%" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+        </div>
+        <a href="https://maps.app.goo.gl/dummy" target="_blank" class="nav-btn">📍 Googleマップで起動</a>
+    </div>
+
+    <h2>6. 大会要項</h2>
+    <div class="card text-content">
+        <p style="margin-top:0;"><strong>開催日時：</strong> 2026年6月7日(日)<br>
+        <span style="font-size:0.8rem; color:#666;">※少雨決行。悪天候時の開催可否はグループLINEにて連絡いたします。</span></p>
+
+        <h3>大会形式・ルール</h3>
+        <ul>
+            <li>安全なプラスチック製バットと専用ボールを使用した簡易ルール（ソーシャルクリケット形式）で行います。</li>
+            <li>「鋼(Hagane)リーグ」と「炎(Homura)リーグ」の2グループに分かれ、各グループ6チームによる総当たり戦を行います。</li>
+            <li>予選リーグ終了後、両リーグの同順位同士による順位決定戦（例：鋼1位 vs 炎1位）を行います。</li>
+            <li>試合形式：1イニング制（オーバー数は当日の進行により調整）。</li>
+            <li>順位決定：①勝ち点(勝3/分1/負0) ②ネットランレート(得失点差相当) ③直接対決の結果。</li>
+            <li class="important">小学生以下のお子様も参加しています。安全第一で、全員が楽しめるフェアプレーをお願いします。</li>
+        </ul>
+    </div>
+
+    <footer>運営：CrickeTRY 2026 実行委員会</footer>
+</div>
+
+<div id="input-modal">
+    <h3 id="modal-title" style="margin-top:0;">認証</h3>
+    <div id="auth-section">
+        <p style="font-size:0.8rem; margin-bottom:10px;">管理者パスワードを入力してください</p>
+        <input type="password" id="pass-field" style="width:80%; padding:10px; font-size:1.5rem; text-align:center; border:2px solid #ccc; border-radius:6px;" placeholder="PASS" inputmode="numeric">
+    </div>
+    <div id="score-section" style="display:none;">
+        <div id="team-h-label" style="font-weight:bold; color:var(--win); margin-bottom:5px; font-size:1.1rem;"></div>
+        <input type="number" id="score-h-field" style="width:70px; padding:10px; font-size:1.5rem; text-align:center; border:2px solid #ccc; border-radius:6px;" inputmode="numeric" placeholder="得点">
+        <div style="margin:10px 0; font-weight:bold;">VS</div>
+        <div id="team-a-label" style="font-weight:bold; color:var(--lose); margin-bottom:5px; font-size:1.1rem;"></div>
+        <input type="number" id="score-a-field" style="width:70px; padding:10px; font-size:1.5rem; text-align:center; border:2px solid #ccc; border-radius:6px;" inputmode="numeric" placeholder="得点">
+    </div>
+    <div style="margin-top:20px; display:flex; gap:10px;">
+        <button id="modal-submit-btn" onclick="submitModal()" style="flex:1; padding:12px; background:var(--primary); color:white; border:none; border-radius:6px; font-weight:bold; cursor:pointer;">確定</button>
+        <button onclick="closeModal()" style="flex:1; padding:12px; background:#888; color:white; border:none; border-radius:6px; cursor:pointer;">戻る</button>
+    </div>
+</div>
+
+<script>
+// ★★★ 重要：ここに先ほど発行したGASのウェブアプリURLを貼り付けてください ★★★
+// 例: const API_URL = "https://script.google.com/macros/s/AKfycbwF4gQPoqaOgCHJITXtPmrvmFzieEVYwjvBFw5vNSXl9ne3vuO6qDSGz7SAHbabrr0/exec";
+const API_URL = ""; 
+// ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+
+let serverPass = "1234"; // GAS未設定時のデフォルトパスワード
+
+let teamData = {
+    H: [
+        {n:"TEAM昇吾 (9人)"}, {n:"チームフェリーク (8人)"}, {n:"チームダーツォンⅡ (8人)"}, 
+        {n:"WinnerEleven① (7人)"}, {n:"ランデル佐久良 (9人)"}, {n:"MKI Cricket Club (8人)"}
+    ],
+    F: [
+        {n:"横須賀坂46 (7人)"}, {n:"チーム名未定 (8人)"}, {n:"チームジュリエッタ (8人)"}, 
+        {n:"WinnerEleven② (8人)"}, {n:"秋川9 (9人)"}, {n:"高松JAPAN (7人)"}
+    ]
+};
+
+const groups = ['H', 'F'];
+const groupNames = { 'H': '鋼 (Hagane)', 'F': '炎 (Homura)' };
+const tagClass = { 'H': 'tag-hagane', 'F': 'tag-homura' };
+
+let matches = [];
+let tScores = {}; 
+let finalRanks = { H:[], F:[] };
+let currentAction = "", currentIndex = null;
+
+function generateLeagueSchedule() {
+    groups.forEach(g => {
+        let t = teamData[g].length;
+        for(let i=0; i<t-1; i++) {
+            for(let j=i+1; j<t; j++) {
+                matches.push({ g: g, h: i, a: j, sh: "", sa: "" });
+            }
+        }
+    });
+}
+
+function init() {
+    generateLeagueSchedule();
+    let html = "";
+    groups.forEach(g => {
+        let numTeams = teamData[g].length;
+        html += `<div class="card league-table-wrap table-simple">
+            <h3>${groupNames[g]} リーグ</h3>
+            <table>
+                <tr>
+                    <th class="rank-col">位</th>
+                    <th class="team-name-col">チーム</th>`;
+        for(let i=0; i<numTeams; i++) html += `<th class="star-col">${i+1}</th>`;
+        html += `   <th class="stat-col">勝</th>
+                    <th class="stat-col">負</th>
+                    <th class="stat-col">分</th>
+                    <th class="score-col">得</th>
+                    <th class="score-col">失</th>
+                    <th class="gd-cell">差</th>
+                    <th class="pts-cell">点</th>
+                </tr>`;
+        teamData[g].forEach((team, i) => {
+            html += `<tr>
+                <td id="rank-${g}-${i}" class="rank-col">-</td>
+                <td class="team-name-col">${i+1}. ${team.n}</td>`;
+            for(let j=0; j<numTeams; j++) html += `<td id="res-${g}-${i}-${j}" class="star-cell"></td>`;
+            html += `<td id="w-${g}-${i}" class="stat-col">0</td>
+                <td id="l-${g}-${i}" class="stat-col">0</td>
+                <td id="d-${g}-${i}" class="stat-col">0</td>
+                <td id="gs-${g}-${i}" class="score-col">0</td>
+                <td id="ga-${g}-${i}" class="score-col">0</td>
+                <td id="gd-${g}-${i}" class="gd-cell">0</td>
+                <td id="pts-${g}-${i}" class="pts-cell">0</td>
+            </tr>`;
+        });
+        html += `</table></div>`;
+    });
+    document.getElementById('league-containers').innerHTML = html;
+    
+    groups.forEach(g => {
+        let numTeams = teamData[g].length;
+        for(let i=0; i<numTeams; i++) {
+            let el = document.getElementById(`res-${g}-${i}-${i}`);
+            if(el) el.style.background = "#eee";
+        }
+    });
+
+    fetchData(); 
+}
+
 async function fetchData() {
+    if (!API_URL) {
+        calc(); updateSchedule(); return; // GAS未設定時はローカルのみで動かす
+    }
+    document.getElementById('loading-mini').style.display = 'flex';
     try {
         const res = await fetch(API_URL);
         const data = await res.json();
+        if(data.pass) serverPass = data.pass;
         
-        serverPass = data.pass; // パスワードをサーバーからセット
-        
-        // 取得したスコアを反映
         if (data.scores) {
             Object.keys(data.scores).forEach(key => {
                 let scores = data.scores[key];
@@ -35,31 +267,88 @@ async function fetchData() {
         
         calc();
         updateSchedule();
-        
-        // 全試合終わっていたら順位決定戦などのボタンを表示する判定等があればここに書く
+
+        // 決勝データの生成が必要なら判定する
+        if(Object.keys(tScores).length > 0) {
+            generateFinals(true);
+        }
         
     } catch (e) {
         console.error("データ取得エラー:", e);
-        // エラー時はローカルの初期状態で表示
-        calc();
-        updateSchedule();
+        calc(); updateSchedule();
+    } finally {
+        document.getElementById('loading-mini').style.display = 'none';
     }
 }
 
-// 起動時にfetchDataを呼び出すようにinit()の末尾を変更
-function init() {
-    generateLeagueSchedule();
-    // ... 前回のHTML生成ロジック ...
-    document.getElementById('league-containers').innerHTML = html;
+function updateSchedule() {
+    let htmlH = `<h3><span class="${tagClass['H']}">鋼</span> 試合日程</h3>`;
+    let htmlF = `<h3><span class="${tagClass['F']}">炎</span> 試合日程</h3>`;
     
-    // fetchData内で calc() と updateSchedule() を呼ぶので、ここは fetchData() に変更
-    fetchData(); 
+    matches.forEach((m, i) => {
+        let sc = m.sh === "" ? "入力" : `<span class="win-s">${m.sh} - ${m.sa}</span>`;
+        let row = `
+        <div class="match-row">
+            <div class="match-info">
+                <div class="match-vs">
+                    <span style="font-size:0.75rem; color:#888;">第${Math.floor(i/3)+1}節</span>
+                    ${teamData[m.g][m.h].n.split(' ')[0]} <small>vs</small> ${teamData[m.g][m.a].n.split(' ')[0]}
+                </div>
+            </div>
+            <div class="score-wrapper">
+                <button class="score-btn" onclick="openScoreModal(${i}, this)">${sc}</button>
+            </div>
+        </div>`;
+        if(m.g === 'H') htmlH += row; else htmlF += row;
+    });
+    
+    document.getElementById("schedule-H").innerHTML = htmlH;
+    document.getElementById("schedule-F").innerHTML = htmlF;
 }
 
-// GASへ送信する非同期関数に変更
+function switchView(mode) {
+    const containers = document.querySelectorAll('.league-table-wrap');
+    const btns = document.querySelectorAll('.view-btn');
+    btns.forEach(b => b.classList.remove('active'));
+    if(mode === 'simple') {
+        containers.forEach(c => { c.classList.remove('table-detail'); c.classList.add('table-simple'); });
+        btns[0].classList.add('active');
+    } else {
+        containers.forEach(c => { c.classList.remove('table-simple'); c.classList.add('table-detail'); });
+        btns[1].classList.add('active');
+    }
+}
+
+function showModalAt(btn) {
+    const modal = document.getElementById('input-modal');
+    document.getElementById('modal-overlay').style.display = "block";
+    modal.style.display = "block";
+    const rect = btn.getBoundingClientRect();
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    let topPos = rect.bottom + scrollTop + 10;
+    if (rect.bottom > window.innerHeight - 250) { topPos = rect.top + scrollTop - modal.offsetHeight - 10; }
+    modal.style.top = topPos + "px";
+}
+
+function closeModal() { 
+    document.getElementById('modal-overlay').style.display="none"; 
+    document.getElementById('input-modal').style.display="none"; 
+}
+
+function openScoreModal(i, btn) { currentAction = "score"; currentIndex = i; showAuth("スコア入力", btn); }
+function openAuthModal(a, btn) { currentAction = a; showAuth("管理者認証", btn); }
+function openTScoreModal(id, btn) { currentAction = "t-score"; currentIndex = id; showAuth("スコア入力", btn); }
+
+function showAuth(title, btn) { 
+    document.getElementById('modal-title').innerText = title; 
+    document.getElementById('auth-section').style.display = "block"; 
+    document.getElementById('score-section').style.display = "none"; 
+    document.getElementById('pass-field').value = ""; 
+    showModalAt(btn);
+}
+
 async function submitModal() {
     if (document.getElementById('auth-section').style.display !== "none") {
-        // パスワードチェックをサーバーから取得したものと比較
         if (document.getElementById('pass-field').value !== String(serverPass)) { 
             alert("パスワードが違います"); 
             return; 
@@ -89,21 +378,20 @@ async function submitModal() {
         const a = document.getElementById('score-a-field').value;
         if (h === "" || a === "") { alert("スコアを入力してください"); return; }
         
-        // 送信ボタンをローディング状態にする
         const btn = document.getElementById('modal-submit-btn');
         btn.innerText = "送信中...";
         btn.disabled = true;
 
         try {
-            // スプレッドシートに送信
-            const payload = { id: currentIndex, h: h, a: a };
-            await fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'text/plain' }, // CORS回避のため text/plain
-                body: JSON.stringify(payload)
-            });
+            if (API_URL) {
+                const payload = { id: currentIndex, h: h, a: a };
+                await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify(payload)
+                });
+            }
 
-            // 成功したら画面を更新
             if (currentAction === "score") {
                 matches[currentIndex].sh = parseInt(h);
                 matches[currentIndex].sa = parseInt(a);
@@ -115,9 +403,7 @@ async function submitModal() {
                 const btnEl = document.getElementById('btn-' + currentIndex);
                 if(btnEl) btnEl.innerText = `${h} - ${a}`;
             }
-            alert("スコアを保存しました！");
             closeModal();
-            
         } catch (e) {
             alert("送信に失敗しました: " + e);
         } finally {
@@ -126,3 +412,123 @@ async function submitModal() {
         }
     }
 }
+
+function calc() {
+    const res = {}; 
+    groups.forEach(g => { 
+        res[g] = teamData[g].map((t, idx) => ({ id: idx, w:0, l:0, d:0, gs:0, ga:0, pts:0, r: new Array(teamData[g].length).fill("") })); 
+    });
+    
+    matches.forEach(m => { 
+        if(m.sh !== "") { 
+            const h = m.sh, a = m.sa; 
+            res[m.g][m.h].gs += h; res[m.g][m.h].ga += a; 
+            res[m.g][m.a].gs += a; res[m.g][m.a].ga += h;
+            
+            if(h > a) { 
+                res[m.g][m.h].w++; res[m.g][m.h].pts += 3; res[m.g][m.a].l++; 
+                res[m.g][m.h].r[m.a] = `○${h}-${a}`; res[m.g][m.a].r[m.h] = `×${a}-${h}`; 
+            } else if(h < a) { 
+                res[m.g][m.a].w++; res[m.g][m.a].pts += 3; res[m.g][m.h].l++; 
+                res[m.g][m.a].r[m.h] = `○${a}-${h}`; res[m.g][m.h].r[m.a] = `×${h}-${a}`; 
+            } else { 
+                res[m.g][m.h].d++; res[m.g][m.a].d++; res[m.g][m.h].pts += 1; res[m.g][m.a].pts += 1; 
+                res[m.g][m.h].r[m.a] = `△${h}-${a}`; res[m.g][m.a].r[m.h] = `△${a}-${h}`; 
+            }
+        }
+    });
+
+    groups.forEach(g => {
+        let sorted = [...res[g]].sort((a,b) => (b.pts - a.pts) || ((b.gs - b.ga) - (a.gs - a.ga)) || (b.gs - a.gs));
+        finalRanks[g] = sorted.map(t => teamData[g][t.id].n);
+        
+        res[g].forEach((s, i) => {
+            let rank = sorted.findIndex(t => t.id === i) + 1;
+            let rankEl = document.getElementById(`rank-${g}-${i}`);
+            if(rankEl) rankEl.innerText = rank === 1 ? "🥇" : rank;
+            
+            let wEl = document.getElementById(`w-${g}-${i}`); if(wEl) wEl.innerText = s.w; 
+            let lEl = document.getElementById(`l-${g}-${i}`); if(lEl) lEl.innerText = s.l; 
+            let dEl = document.getElementById(`d-${g}-${i}`); if(dEl) dEl.innerText = s.d;
+            let gsEl = document.getElementById(`gs-${g}-${i}`); if(gsEl) gsEl.innerText = s.gs; 
+            let gaEl = document.getElementById(`ga-${g}-${i}`); if(gaEl) gaEl.innerText = s.ga;
+            let gdEl = document.getElementById(`gd-${g}-${i}`); if(gdEl) gdEl.innerText = s.gs - s.ga; 
+            let ptsEl = document.getElementById(`pts-${g}-${i}`); if(ptsEl) ptsEl.innerText = s.pts;
+            
+            for(let j=0; j<teamData[g].length; j++) {
+                if(i !== j && s.r[j]) { 
+                    let cell = document.getElementById(`res-${g}-${i}-${j}`);
+                    if(cell) cell.innerHTML = `<span class="${s.r[j].includes('○') ? 'win-s' : s.r[j].includes('×') ? 'lose-s' : 'draw-s'}">${s.r[j]}</span>`; 
+                }
+            }
+        });
+    });
+}
+
+function generateFinals(isRestore = false) {
+    let html = "";
+    document.getElementById('btn-show-rank').style.display = 'block';
+
+    for(let i=1; i<=6; i++) {
+        let id = "final_" + i;
+        let rankH = finalRanks['H'][i-1] || "鋼 " + i + "位";
+        let rankF = finalRanks['F'][i-1] || "炎 " + i + "位";
+        
+        if(!tScores[id]) {
+            tScores[id] = { teamH: rankH, teamA: rankF, sh: "", sa: "" };
+        }
+        
+        let title = i === 1 ? "🏆 優勝決定戦" : (i === 6 ? "最下位決定戦" : `${i}位パート決定戦`);
+        let btnText = tScores[id].sh !== "" ? `${tScores[id].sh} - ${tScores[id].sa}` : "入力";
+        
+        html += `
+        <div style="background:#e0f2f1; padding:8px; font-weight:bold; border-bottom:1px solid #ddd; font-size:0.85rem; margin-top:10px;">${title}</div>
+        <div class="match-row">
+            <div class="match-info">
+                <div class="match-vs">
+                    <span class="tag-hagane">鋼${i}位</span> ${rankH.split(' ')[0]} 
+                    <small>vs</small> 
+                    <span class="tag-homura">炎${i}位</span> ${rankF.split(' ')[0]}
+                </div>
+            </div>
+            <div class="score-wrapper">
+                <button class="score-btn" id="btn-${id}" onclick="openTScoreModal('${id}', this)">${btnText}</button>
+            </div>
+        </div>`;
+    }
+    
+    document.getElementById('schedule-tourn').innerHTML = html;
+    if(!isRestore) window.scrollTo({ top: document.getElementById('tourn-area').offsetTop - 50, behavior: 'smooth' });
+}
+
+function showRanking() {
+    let html = "";
+    let rankNum = 1;
+    for(let i=1; i<=6; i++) {
+        let id = "final_" + i;
+        let m = tScores[id];
+        if(!m || m.sh === "") { rankNum += 2; continue; }
+        
+        let winner = m.sh > m.sa ? m.teamH : (m.sh < m.sa ? m.teamA : m.teamH + " / " + m.teamA + "(同点)");
+        let loser = m.sh > m.sa ? m.teamA : (m.sh < m.sa ? m.teamH : null);
+        
+        html += `<div class="final-rank-row"><div class="rank-num">${rankNum}位</div><div class="rank-name">${winner}</div></div>`;
+        rankNum++;
+        if(loser) {
+            html += `<div class="final-rank-row"><div class="rank-num">${rankNum}位</div><div class="rank-name">${loser}</div></div>`;
+            rankNum++;
+        } else {
+            rankNum++; 
+        }
+    }
+    
+    document.getElementById('final-rank-card').innerHTML = html;
+    document.getElementById('final-rank-card').style.display = 'block';
+    document.getElementById('final-rank-title').style.display = 'block';
+    window.scrollTo({ top: document.getElementById('final-rank-card').offsetTop - 50, behavior: 'smooth' });
+}
+
+init();
+</script>
+</body>
+</html>
